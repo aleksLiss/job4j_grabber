@@ -7,6 +7,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
+import java.util.StringJoiner;
 
 public class HabrCareerParse {
     private static final int COUNT_OF_PAGE = 5;
@@ -16,6 +17,7 @@ public class HabrCareerParse {
 
     public static void main(String[] args) throws IOException {
         parsePages();
+        retrieveDescription("https://career.habr.com/vacancies/1000151189");
     }
 
     private static void parsePages() throws IOException {
@@ -35,5 +37,20 @@ public class HabrCareerParse {
             });
             pageNumber--;
         }
+    }
+
+    private static String retrieveDescription(String link) throws IOException {
+        StringJoiner derscription = new StringJoiner("\n");
+        Connection connection = Jsoup.connect(link);
+        Document document = connection.get();
+        Elements rows = document.select(".vacancy-description__text");
+        rows.forEach(row -> {
+            Elements elements = row.children();
+            elements.forEach(i -> {
+                Elements elements1 = i.children();
+                elements1.forEach(j -> derscription.add(j.text()));
+            });
+        });
+        return derscription.toString();
     }
 }
