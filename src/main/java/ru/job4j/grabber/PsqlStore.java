@@ -1,8 +1,6 @@
 package ru.job4j.grabber;
 
 import ru.job4j.grabber.pojo.Post;
-import ru.job4j.grabber.utils.DateTimeParser;
-import ru.job4j.grabber.utils.HabrCareerDateTimeParser;
 
 import java.io.InputStream;
 import java.sql.*;
@@ -35,23 +33,18 @@ public class PsqlStore implements Store {
         }
     }
 
-    private List<Post> createPosts(ResultSet set) {
-        List<Post> posts = new ArrayList<>();
-        DateTimeParser parser = new HabrCareerDateTimeParser();
+    private Post createPostFromResultSet(ResultSet set) {
+        Post post = null;
         try {
-            while (set.next()) {
-                posts.add(new Post(set.getInt("id"),
-                        set.getString("name"),
-                        set.getString("text"),
-                        set.getString("link"),
-                        parser.parse(String.format("%sT%s",
-                                set.getDate("created"),
-                                set.getTime("created")))));
-            }
+            post = new Post(set.getInt("id"),
+                    set.getString("title"),
+                    set.getString("link"),
+                    set.getString("description"),
+                    set.getTimestamp("created").toLocalDateTime().withNano(0));
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
-        return posts;
+        return post;
     }
 
     @Override
@@ -75,8 +68,9 @@ public class PsqlStore implements Store {
         List<Post> posts = new ArrayList<>();
         try (PreparedStatement statement =
                      connection.prepareStatement("select * from post")) {
-            try (ResultSet set = statement.executeQuery()) {
-                posts = createPosts(set);
+            statement.execute();
+            while (statement.getResultSet().next()) {
+                posts.add(createPostFromResultSet(statement.getResultSet()));
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -91,9 +85,7 @@ public class PsqlStore implements Store {
                      connection.prepareStatement("SELECT * FROM post WHERE id = ?")) {
             statement.setInt(1, id);
             statement.execute();
-            try (ResultSet set = statement.executeQuery()) {
-                post = createPosts(set).get(0);
-            }
+            post = createPostFromResultSet(statement.getResultSet());
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
